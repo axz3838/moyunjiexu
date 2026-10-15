@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>墨韵节序｜二十四节气国风交互Web平台</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Noto Serif SC","SimSun",serif;}
+body{background:radial-gradient(circle at 10% 10%,rgba(255,255,255,0.8) 0%,transparent 50%),radial-gradient(circle at 90% 20%,rgba(200,230,200,0.5) 0%,transparent 50%),linear-gradient(135deg,#f6efe4 0%,#e8dfcf 45%,#f3efe3 100%);color:#2e2b28;min-height:100vh;position:relative;padding-top:64px;}
+body::before{content:"";position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h60v60H0z' fill='none'/%3E%3Cpath d='M30 0c1 8 2 16 0 24-2 10-8 18-15 24' stroke='%23d4c7b0' stroke-width='1' fill='none' opacity='.15'/%3E%3C/svg%3E");pointer-events:none;z-index:0;}
+#globalParticleCanvas{position:fixed;inset:0;pointer-events:none;z-index:0;}
+.fixed-nav{position:fixed;top:0;left:0;width:100%;height:64px;z-index:999;background-color:rgba(246,239,228,0.85);backdrop-filter:blur(6px);border-bottom:1px solid rgba(184,137,106,0.22);transition:background 0.3s;}
+.fixed-nav-wrap{max-width:1280px;height:100%;margin:0 auto;padding:0 16px;display:flex;align-items:center;justify-content:space-between;}
+.fixed-logo{font-size:20px;color:#b8896a;letter-spacing:2px;}
+.fixed-nav-menu a{text-decoration:none;color:#6b4f3a;margin-left:24px;font-size:14px;cursor:pointer;transition:color 0.3s;}
+.fixed-nav-menu a:hover{color:#b3423d;}
+.fixed-nav-menu a.active{color:#9b6b43;font-weight:bold;border-bottom:2px solid #9b6b43;}
+.page-hero{position:relative;z-index:2;text-align:center;padding:40px 16px 30px;}
+.page-hero-title{font-size:42px;letter-spacing:8px;color:#b8896a;text-shadow:0 2px 8px rgba(80,40,20,0.15);position:relative;display:inline-block;}
+.page-hero-title::before,.page-hero-title::after{content:"◆";position:absolute;top:50%;transform:translateY(-50%);font-size:16px;color:#c9a66b;opacity:0.6;}
+.page-hero-title::before{left:-24px;}
+.page-hero-title::after{right:-24px;}
+.page-hero-sub{margin-top:12px;color:#6b5f4e;font-size:15px;letter-spacing:1px;}
+.container{max-width:1280px;margin:0 auto;padding:0 16px 24px;position:relative;z-index:2;}
+.page{display:none;animation:pageFade 0.45s ease;}
+.page.active{display:block;}
+@keyframes pageFade{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+@keyframes rightAnswerPop{0%{transform:scale(0.8);opacity:0;}50%{transform:scale(1.05);}100%{transform:scale(1);opacity:1;}}
+.pop-correct{animation:rightAnswerPop 0.4s ease;}
+.card-home{background:rgba(255,253,245,0.94);border:1px solid rgba(184,137,106,0.26);border-radius:16px;padding:36px;margin-bottom:20px;position:relative;overflow:hidden;}
+.card{background:rgba(255,253,245,0.90);border:1px solid rgba(184,137,106,0.20);border-radius:16px;padding:28px;margin-bottom:20px;position:relative;overflow:hidden;box-shadow:0 4px 14px rgba(80,40,20,0.06);}
+.card-home::before,.card::before{content:"";position:absolute;left:0;top:0;width:4px;height:100%;background:linear-gradient(180deg,#c9a66b,#b8896a);}
+.card h3,.card-home h3{color:#8b5a3c;margin-bottom:16px;font-size:24px;display:flex;align-items:center;gap:8px;}
+.card h3::before,.card-home h3::before{content:"印";font-size:12px;color:#fff;background:#b3423d;padding:2px 6px;border-radius:4px;}
+.text-block p{line-height:1.8;color:#4a453f;margin:10px 0;font-size:16px;}
+.info-group{padding:14px 0;border-bottom:1px dashed rgba(184,137,106,0.18);}
+.info-group:last-child{border-bottom:none;}
+.info-label{color:#b8896a;font-weight:500;margin-bottom:4px;}
+canvas{width:100%;border-radius:12px;background:#fffef8;border:1px solid rgba(184,137,106,0.25);}
+.btn-group{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0;}
+.btn-group button{padding:10px 16px;border:none;border-radius:8px;background:linear-gradient(135deg,#b8896a,#c9a66b);color:#fff;cursor:pointer;transition:0.28s;font-size:14px;}
+.btn-group button:hover{transform:translateY(-2px);}
+#game .btn-group button.active{background:#9b6b43;}
+.color-pick-wrap{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0;}
+.color-dot{width:40px;height:40px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:0.25s;}
+.color-dot.active{border-color:#8b5a3c;transform:scale(1.15);}
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);padding:14px 28px;background:rgba(184,137,106,0.95);color:#fff;border-radius:8px;display:none;z-index:999;animation:toastPop 0.35s ease;}
+@keyframes toastPop{from{opacity:0;transform:translate(-50%,-10px);}to{opacity:1;transform:translate(-50%,0);}}
+.record-item{padding:14px;border:1px solid rgba(184,137,106,0.18);border-radius:8px;margin:10px 0;background:rgba(255,253,245,0.6);}
+.quiz-option{padding:12px 16px;border:1px solid rgba(184,137,106,0.25);border-radius:8px;margin:8px 0;cursor:pointer;transition:0.25s;color:#4a453f;}
+.quiz-option:hover{background:rgba(184,137,106,0.12);}
+.quiz-option.selected{background:rgba(184,137,106,0.25);}
+.quiz-option.right{background-color:#e8f1e2 !important;border:2px solid #508c42 !important;color:#2b5222;}
+.quiz-option.wrong{background-color:#f8e7e7 !important;border:2px solid #c44444 !important;color:#7c2222;}
+.deco{position:absolute;right:12px;top:12px;font-size:14px;color:rgba(184,137,106,0.45);letter-spacing:2px;}
+.home-tip{margin:22px 0 8px;color:#8b745c;}
+.back-top{position:fixed;bottom:24px;right:24px;width:44px;height:44px;border-radius:50%;background:#b8896a;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;visibility:hidden;transition:0.3s;z-index:998;}
+.back-top.show{opacity:1;visibility:visible;}
+.score-box{background:rgba(184,137,106,0.12);padding:12px;border-radius:8px;margin-bottom:16px;display:flex;gap:24px;flex-wrap:wrap;}
+@media(max-width:720px){body{padding-top:110px;}.fixed-nav{height:auto;padding:10px 0;}.fixed-nav-wrap{flex-direction:column;gap:8px;}.fixed-nav-menu a{margin:0 8px;}.page-hero-title{font-size:32px;letter-spacing:4px;}.card-home{padding:22px 18px;}}
+</style>
+</head>
+<body>
+<div class="fixed-nav">
+<div class="fixed-nav-wrap">
+<div class="fixed-logo">墨韵节序</div>
+<div class="fixed-nav-menu">
+<a onclick="showPage('home',this)">首页</a>
+<a onclick="showPage('timeline',this)">节序时序馆</a>
+<a onclick="showPage('guibiao',this)">圭表测影</a>
+<a onclick="showPage('detail',this)">物候风物阁</a>
+<a onclick="showPage('workshop',this)">五色拾韵工坊</a>
+<a onclick="showPage('game',this)">民俗小测验</a>
+<a onclick="showPage('mynote',this)">我的节记</a>
+</div>
+</div>
+</div>
+<section class="page-hero">
+<h1 class="page-hero-title">墨韵节序</h1>
+<p class="page-hero-sub">四时流转，水墨成章</p>
+</section>
+<div class="toast" id="toast"></div>
+<canvas id="globalParticleCanvas"></canvas>
+<div class="container">
+<div id="home" class="page active">
+<div class="card-home">
+<h3>四时流转 · 节气长卷</h3>
+<div class="deco">水墨 · 节令 · 风物</div>
+<div class="text-block">
+<p>二十四节气源自古人对日月运行、动植物生长与农事节律的长期观察，被列入人类非物质文化遗产。</p>
+</div>
+<p class="home-tip">👉 使用上方导航栏切换各个功能板块</p>
+<div class="btn-group">
+<button onclick="showPage('timeline',this)">前往时序轮盘</button>
+<button onclick="showPage('guibiao',this)">圭表测影模拟</button>
+</div>
+</div>
+</div>
+<div id="timeline" class="page">
+<div class="card">
+<h3>二十四节气环形时序轮盘</h3>
+<div class="deco">春生 · 夏长 · 秋收 · 冬藏</div>
+<p style="margin-bottom:12px;color:#6b5f4e;">鼠标悬浮查看节气信息，点击跳转到详情页面</p>
+<canvas id="ringCanvas" height="460"></canvas>
+</div>
+</div>
+<div id="guibiao" class="page">
+<div class="card">
+<h3>圭表测影模拟</h3>
+<div class="deco">观日 · 测影 · 定节</div>
+<p style="margin-bottom:12px;color:#6b5f4e;">
+古人依靠圭表测量正午日影长短，划分二十四节气。夏至日影最短，冬至日影最长。
+<br><span style="font-size:13px;color:#8b745c;">▶本模拟器采用北纬35°（二十四节气起源黄河中下游区域）演算，不同地域影长会存在差异。</span>
+</p >
+<canvas id="guibiaoCanvas" height="420"></canvas>
+<div class="btn-group">
+<button onclick="prevGuibiaoTerm()">上一节气</button>
+<button onclick="nextGuibiaoTerm()">下一节气</button>
+<button onclick="autoPlayGuibiao()">自动播放全年影长变化</button>
+<button onclick="stopAutoGuibiao()">停止播放</button>
+</div>
+<div class="info-group">
+<div class="info-label">当前节气</div>
+<div id="guibiaoTermName"></div>
+</div>
+<div class="info-group">
+<div class="info-label">实测影长相对值</div>
+<div id="guibiaoShadowLen"></div>
+</div>
+<div class="info-group">
+<div class="info-label">📌观测解读</div>
+<div id="guiTip"></div>
+</div>
+<div class="info-group">
+<div style="font-size:13px;color:#6b5f4e;">
+💡参考线说明：<span style="color:#c23030;">红色虚线=冬至（全年影最长）</span>｜<span style="color:#288b37;">绿色虚线=夏至（全年影最短）</span>
+</div>
+</div>
+</div>
+</div>
+<div id="detail" class="page">
+<div class="card">
+<h3 id="detailTitle">节气详情</h3>
+<div class="deco">物候 · 民俗 · 古诗</div>
+<div id="detailContent"></div>
+<div class="btn-group">
+<button onclick="prevTerm()">上一节气</button>
+<button onclick="nextTerm()">下一节气</button>
+</div>
+</div>
+</div>
+<div id="workshop" class="page">
+<div class="card">
+<h3>五色拾韵工坊｜国风壁纸创作</h3>
+<div class="deco">提笔 · 设色 · 成章</div>
+<p style="color:#6b5f4e;">选取节气传统五色，绘制节气国风画面，导出壁纸保存本地。</p>
+<div style="margin:14px 0;">
+<label style="color:#6b5f4e;font-size:14px;">选择颜色：</label>
+<div class="color-pick-wrap" id="colorWrap"></div>
+</div>
+<div style="margin:14px 0;">
+<label style="color:#6b5f4e;font-size:14px;">笔触粗细：</label>
+<input type="range" id="brushSize" min="2" max="18" value="8" style="width:100%;max-width:300px;">
+</div>
+<canvas id="paintCanvas" height="420"></canvas>
+<div class="btn-group">
+<button id="penBtn">画笔</button>
+<button id="eraserBtn">橡皮</button>
+<button onclick="clearPaint()">清空画布</button>
+<button onclick="downloadPaint()">导出壁纸</button>
+</div>
+</div>
+</div>
+<div id="game" class="page">
+<div class="card">
+<h3>节气诗词小测</h3>
+<div class="deco">读诗 · 知节 · 识俗</div>
+<div class="score-box">
+<div>总题数：<span id="totalCount">0</span></div>
+<div>答对：<span id="rightCount">0</span></div>
+<div>得分：<span id="scoreNum">0</span></div>
+<div>正确率：<span id="rateText">0%</span></div>
+</div>
+<div class="btn-group">
+<button onclick="switchQuizCat('all')" class="active">全部题目</button>
+<button onclick="switchQuizCat('poem')">古诗诗词</button>
+<button onclick="switchQuizCat('folk')">民俗习俗</button>
+<button onclick="switchQuizCat('wuhou')">物候三候</button>
+<button onclick="switchQuizCat('knowledge')">综合知识</button>
+</div>
+<div id="quizBox"></div>
+<div class="btn-group" style="margin-top:16px;">
+<button id="submitBtn">提交答案</button>
+<button id="explainBtn" style="display:none;">查看解析</button>
+<button id="nextQuizBtn" style="display:none;">下一题</button>
+</div>
+<div id="explainText" style="margin-top:12px;color:#6b4f3a;display:none;"></div>
+</div>
+</div>
+<div id="mynote" class="page">
+<div class="card">
+<h3>我的节记｜本地记录</h3>
+<div class="deco">记录 · 创作 · 收藏</div>
+<p style="color:#6b5f4e;">你的创作记录、答题成绩全部保存在浏览器本地。</p>
+<div id="noteList"></div>
+<div class="btn-group">
+<button onclick="clearAllNote()">清空本地记录</button>
+</div>
+</div>
+</div>
+</div>
+<div class="back-top" id="backTop">↑</div>
+<script>
+const solarTerms=[
+{name:"立春",pinyin:"lichun",time:"2月3-5日",wuhou:"东风解冻；蛰虫始振；鱼陟负冰",folk:"迎春打春，咬春吃春卷",poem:"律回岁晚冰霜少，春到人间草木知",poemAuthor:"张栻《立春偶成》",color:["#3A5F34","#D96057","#E6C872","#E9E9E7","#2C3846"],particle:"petal"},
+{name:"雨水",pinyin:"yushui",time:"2月18-20日",wuhou:"獭祭鱼；鸿雁来；草木萌动",folk:"回娘屋，拉保保",poem:"好雨知时节，当春乃发生",poemAuthor:"杜甫《春夜喜雨》",color:["#416B82","#D1734F","#DBC27A","#E5E6E8","#2A3342"],particle:"rain"},
+{name:"惊蛰",pinyin:"jingzhe",time:"3月5-6日",wuhou:"桃始华；仓庚鸣；鹰化为鸠",folk:"祭白虎，打小人",poem:"微雨众卉新，一雷惊蛰始",poemAuthor:"韦应物《观田家》",color:["#548048","#C85850","#E2BD68","#E7E8E5","#313A47"],particle:"dragonfly"},
+{name:"春分",pinyin:"chunfen",time:"3月20-22日",wuhou:"玄鸟至；雷乃发声；始电",folk:"竖蛋，祭日",poem:"春分雨脚落声微，柳岸斜风带客归",poemAuthor:"徐铉《春分日》",color:["#488C64","#D85A4A","#E4C470","#EEEEEE","#29323E"],particle:"mist"},
+{name:"清明",pinyin:"qingming",time:"4月4-6日",wuhou:"桐始华；田鼠化为鴽；虹始见",folk:"扫墓踏青，放风筝",poem:"清明时节雨纷纷，路上行人欲断魂",poemAuthor:"杜牧《清明》",color:["#3E7766","#C96454","#D9B96A","#E4E6E7","#2C3644"],particle:"rain"},
+{name:"谷雨",pinyin:"guyu",time:"4月19-21日",wuhou:"萍始生；鸣鸠拂其羽；戴胜降于桑",folk:"祭仓颉，喝谷雨茶",poem:"谷雨春光晓，山川黛色青",poemAuthor:"元稹《谷雨》",color:["#46783F","#D46B4E","#E0C075","#E8E9EA","#2B3440"],particle:"reed"},
+{name:"立夏",pinyin:"lixia",time:"5月5-7日",wuhou:"蝼蝈鸣；蚯蚓出；王瓜生",folk:"迎夏，尝新，斗蛋",poem:"绿树阴浓夏日长，楼台倒影入池塘",poemAuthor:"高骈《山亭夏日》",color:["#367042","#C7473B","#E5B25D","#F0F0F0","#262E38"],particle:"fire"},
+{name:"小满",pinyin:"xiaoman",time:"5月20-22日",wuhou:"苦菜秀；靡草死；麦秋至",folk:"祭车神，吃苦菜",poem:"夜莺啼绿柳，皓月醒长空",poemAuthor:"欧阳修《小满》",color:["#3A6946","#D14A3E","#E8B862","#ECEDEE","#242C36"],particle:"mist"},
+{name:"芒种",pinyin:"mangzhong",time:"6月5-7日",wuhou:"螳螂生；鹏始鸣；反舌无声",folk:"送花神，煮梅",poem:"时雨及芒种，四野皆插秧",poemAuthor:"陆游《时雨》",color:["#346640","#C24034","#DFB058","#E9EAEB","#222A34"],particle:"rain"},
+{name:"夏至",pinyin:"xiazhi",time:"6月21-22日",wuhou:"鹿角解；蝉始鸣；半夏生",folk:"消夏避伏，吃夏至面",poem:"昼晷已云极，宵漏自此长",poemAuthor:"韦应物《夏至避暑北池》",color:["#30623A","#B8362E","#E2A950","#F2F2F2","#202832"],particle:"fire"},
+{name:"小暑",pinyin:"xiaoshu",time:"7月6-8日",wuhou:"温风至；蟋蟀居宇；鹰始鸷",folk:"食新，晒伏",poem:"小暑夏弦应，徽音商管初",poemAuthor:"元稹《小暑六月节》",color:["#325F3C","#BC3A30","#DBA64C","#EAEBEB","#212933"],particle:"cloud"},
+{name:"大暑",pinyin:"dashu",time:"7月22-24日",wuhou:"腐草为萤；土润溽暑；大雨时行",folk:"喝伏茶，晒姜",poem:"大暑三秋近，林钟九夏移",poemAuthor:"元稹《大暑六月中》",color:["#2E5B38","#B23228","#D89F46","#E6E7E8","#1F2731"],particle:"rain"},
+{name:"立秋",pinyin:"liqiu",time:"8月7-9日",wuhou:"凉风至；白露生；寒蝉鸣",folk:"贴秋膘，啃秋瓜",poem:"云天收夏色，木叶动秋声",poemAuthor:"刘翰《立秋》",color:["#485244","#A64F38","#D29942","#E0E1E2","#312A36"],particle:"leaf"},
+{name:"处暑",pinyin:"chushu",time:"8月22-24日",wuhou:"鹰乃祭鸟；天地始肃；禾乃登",folk:"开渔节，祭祖",poem:"处暑无三日，新凉直万金",poemAuthor:"苏泂《长江二首》",color:["#454F41","#9E4A34","#CB923D","#DDDEDF","#302935"],particle:"leaf"},
+{name:"白露",pinyin:"bailu",time:"9月7-9日",wuhou:"鸿雁来；玄鸟归；群鸟养羞",folk:"饮白露茶，收清露",poem:"白露团甘子，清晨散马蹄",poemAuthor:"杜甫《白露》",color:["#424C3E","#964430","#C48B38","#E8E9EA","#2E2733"],particle:"mist"},
+{name:"秋分",pinyin:"qiufen",time:"9月22-24日",wuhou:"雷始收声；蛰虫坯户；水始涸",folk:"祭月，竖蛋",poem:"秋分一夜停，阴魄最晶荧",poemAuthor:"谢逸《秋分》",color:["#3E483A","#8E3E2C","#BD8434","#E5E6E7","#2C2531"],particle:"leaf"},
+{name:"寒露",pinyin:"hanlu",time:"10月8-9日",wuhou:"鸿雁来宾；雀入大水为蛤；菊有黄华",folk:"赏菊，饮菊花酒",poem:"寒露惊秋晚，朝看菊渐黄",poemAuthor:"元稹《寒露九月节》",color:["#3A4437","#863A28","#B67E30","#E2E3E4","#2A232F"],particle:"mist"},
+{name:"霜降",pinyin:"shuangjiang",time:"10月23-24日",wuhou:"豺乃祭兽；草木黄落；蜇虫咸俯",folk:"赏菊，吃柿子",poem:"霜降三旬后，蓂馀一叶秋",poemAuthor:"元稹《霜降九月中》",color:["#364033","#7E3424","#AF762C","#DFE0E1","#28212D"],particle:"leaf"},
+{name:"立冬",pinyin:"lidong",time:"11月7-8日",wuhou:"水始冰；地始冻；雉入大水为蜃",folk:"补冬，吃饺子",poem:"细雨生寒未有霜，庭前木叶半青黄",poemAuthor:"仇远《立冬》",color:["#2F3846","#704048","#A48044","#E0E1E4","#1E2430"],particle:"snow"},
+{name:"小雪",pinyin:"xiaoxue",time:"11月22-23日",wuhou:"虹藏不见；天气上升地气下降；闭塞而成冬",folk:"腌菜，晒腊货",poem:"花雪随风不厌看，更多还肯失林峦",poemAuthor:"戴叔伦《小雪》",color:["#2C3542","#6A3C44","#9E7A40","#DDDEE1","#1C222E"],particle:"snow"},
+{name:"大雪",pinyin:"daxue",time:"12月6-8日",wuhou:"鹖鴠不鸣；虎始交；荔挺出",folk:"腌肉，赏雪",poem:"大雪江南见未曾，今年方始是严凝",poemAuthor:"陆游《大雪》",color:["#29323F","#643840","#98743C","#DADBDF","#1A202C"],particle:"snow"},
+{name:"冬至",pinyin:"dongzhi",time:"12月21-23日",wuhou:"蚯蚓结；麋角解；水泉动",folk:"冬至大如年，吃饺子汤圆",poem:"天时人事日相催，冬至阳生春又来",poemAuthor:"杜甫《小至》",color:["#262F3C","#5E343C","#926E38","#D7D8DC","#181E2A"],particle:"snow"},
+{name:"小寒",pinyin:"xiaohan",time:"1月5-7日",wuhou:"雁北乡；鹊始巢；雉始雊",folk:"喝腊八粥，食糯米饭",poem:"小寒连大吕，欢鹊垒新巢",poemAuthor:"元稹《小寒》",color:["#242D3A","#583038","#8C6834","#D4D5D9","#161C28"],particle:"snow"},
+{name:"大寒",pinyin:"dahan",time:"1月20-21日",wuhou:"鸡始乳；征鸟厉疾；水泽腹坚",folk:"扫尘，备年，炖腊味",poem:"大寒雪未消，闭户不能出",poemAuthor:"陆游《大寒》",color:["#212A37","#522C34","#866230","#D1D2D6","#141A26"],particle:"snow"}
+];
+let currentTermIndex=0;
+const termImageList = {
+  lichun: "lichun.jpg",
+  yushui: "yushui.jpg",
+  jingzhe: "jingzhe.jpg",
+  chunfen: "chunfen.jpg",
+  qingming: "qingming.jpg",
+  guyu: "guyu.jpg",
+  lixia: "lixia.jpg",
+  xiaoman: "xiaoman.jpg",
+  mangzhong: "mangzhong.jpg",
+  xiazhi: "xiazhi.jpg",
+  xiaoshu: "xiaoshu.jpg",
+  dashu: "dashu.jpg",
+  liqiu: "liqiu.jpg",
+  chushu: "chushu.jpg",
+  bailu: "bailu.jpg",
+  qiufen: "qiufen.jpg",
+  hanlu: "hanlu.jpg",
+  shuangjiang: "shuangjiang.jpg",
+  lidong: "lidong.jpg",
+  xiaoxue: "xiaoxue.jpg",
+  daxue: "daxue.jpg",
+  dongzhi: "dongzhi.jpg",
+  xiaohan: "xiaohan.jpg",
+  dahan: "dahan.jpg"
+};
+let globalKeepParticleType="none";
+let selectedColor="#b8896a";
+let isEraser=false;
+let guibiaoAutoTimer=null;
+let quizIndex=0;
+let quizData=[];
+let quizRawData=[];
+let currentQuizCat="all";
+let userSelectIdx=null;
+let quizAnswered=false;
+let score=0;
+let rightNum=0;
+let totalAnswer=0;
+const localLat=35;
+const gnomonHeight=120;
+const guiBaseY=300;
+const guiStartX=60;
+const guiTotalWidth=640;
+function calcShadowLength(index){
+const longitude=(315+index*15)%360;
+const rad=longitude*Math.PI/180;
+const declination=23.45*Math.sin(rad);
+const hRad=(90-localLat+declination)*Math.PI/180;
+return gnomonHeight/Math.tan(hRad);
+}
+function loadStorage(){const raw=localStorage.getItem("moYunJiXuNote");if(!raw)return{records:[]};return JSON.parse(raw);}
+function saveStorage(data){localStorage.setItem("moYunJiXuNote",JSON.stringify(data));}
+function addNote(text){const data=loadStorage();data.records.unshift({time:new Date().toLocaleString(),content:text});if(data.records.length>20)data.records.pop();saveStorage(data);renderNote();}
+function renderNote(){
+const box=document.getElementById("noteList");
+const data=loadStorage();
+const paintRecords = JSON.parse(localStorage.getItem("paintRecords") || "[]");
+
+let html = "";
+//答题记录
+data.records.forEach(r=>{
+html += `<div class="record-item">
+<div style="font-size:14px;color:#8b5a3c;">${r.time}</div>
+<div style="margin-top:6px;color:#4a453f;">${r.content}</div>
+</div>`;
+});
+
+//绘画记录（只显示时间，去掉图片）
+paintRecords.forEach(r=>{
+html += `<div class="record-item">
+<div style="font-size:14px;color:#8b5a3c;">🎨绘画创作｜${r.time}</div>
+<div style="margin-top:8px;color:#6b5f4e;">作品已下载至本地</div>
+</div>`;
+});
+
+if(html === ""){
+box.innerHTML="<p style='color:#6b5f4e;'>暂无记录，快去创作或答题吧。</p >";
+return;
+}
+box.innerHTML = html;
+}
+function clearAllNote(){
+localStorage.removeItem("moYunJiXuNote");
+localStorage.removeItem("paintRecords"); 
+renderNote();
+showToast("本地记录已全部清空");
+}
+function showToast(msg){const t=document.getElementById("toast");t.innerText=msg;t.style.display="block";setTimeout(()=>t.style.display="none",2200);}
+function showPage(id,el){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll(".fixed-nav-menu a").forEach(link=>link.classList.remove("active"));if(el)el.classList.add("active");if(guibiaoAutoTimer){clearInterval(guibiaoAutoTimer);guibiaoAutoTimer=null;}ringHoverIdx=-1;requestAnimationFrame(()=>{if(id==="detail")renderDetail();if(id==="timeline")drawRing();if(id==="workshop")initPaint();if(id==="game")initQuiz();if(id==="mynote")renderNote();if(id==="guibiao")initGuibiao();setParticleByKeepType();});}
+const globalParticleCanvas=document.getElementById("globalParticleCanvas");
+const gCtx=globalParticleCanvas.getContext("2d");
+let globalParticles=[];
+let globalParticleType="none";
+let particleRAF=null;
+class GlobalParticle{constructor(typ,w,h){this.type=typ;this.x=Math.random()*w;this.y=Math.random()*-80;this.size=Math.random()*10+6;this.vx=(Math.random()-0.5)*0.4;this.vy=Math.random()*0.9+0.3;this.rot=Math.random()*Math.PI*2;this.rotSpeed=(Math.random()-0.5)*0.015;this.alpha=Math.random()*0.45+0.6;}update(w,h){this.x+=this.vx;this.y+=this.vy;this.rot+=this.rotSpeed;if(this.y>h+20){this.y=Math.random()*-60;this.x=Math.random()*w;}if(this.x<-20)this.x=w+20;if(this.x>w+20)this.x=-20;}draw(ctx){ctx.save();ctx.globalAlpha=this.alpha;ctx.translate(this.x,this.y);ctx.rotate(this.rot);if(this.type==="petal"){ctx.fillStyle="#e8a8b0";ctx.beginPath();ctx.ellipse(0,0,this.size*1.2,this.size*0.6,0,0,Math.PI*2);ctx.fill();}else if(this.type==="rain"){ctx.strokeStyle="#748ca8";ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(0,-this.size*1.4);ctx.lineTo(0,this.size*0.4);ctx.stroke();}else if(this.type==="leaf"){ctx.fillStyle="#b88658";ctx.beginPath();ctx.ellipse(0,0,this.size,this.size*0.45,0,0,Math.PI*2);ctx.fill();}else if(this.type==="snow"){ctx.fillStyle="#f8f8f8";ctx.beginPath();for(let s=0;s<6;s++){const ang=Math.PI/6*s;const sx=Math.cos(ang)*this.size*0.6;const sy=Math.sin(ang)*this.size*0.6;if(s===0)ctx.moveTo(sx,sy);else ctx.lineTo(sx,sy);}ctx.closePath();ctx.fill();}else if(this.type==="cloud"){ctx.fillStyle="#D9DCE3";ctx.beginPath();ctx.arc(-this.size,0,this.size*0.7,0,Math.PI*2);ctx.arc(this.size,0,this.size*0.7,0,Math.PI*2);ctx.fill();}else if(this.type==="fire"){ctx.fillStyle="#E47249";ctx.beginPath();ctx.moveTo(0,this.size);ctx.quadraticCurveTo(this.size,0,0,-this.size);ctx.quadraticCurveTo(-this.size,0,0,this.size);ctx.fill();}else if(this.type==="mist"){ctx.fillStyle="#C9D2D9";ctx.beginPath();ctx.arc(0,0,this.size,0,Math.PI*2);ctx.fill();}else if(this.type==="dragonfly"){ctx.strokeStyle="#7A8A99";ctx.lineWidth=1.4;ctx.beginPath();ctx.ellipse(0,0,this.size*1.5,this.size*0.4,0,0,Math.PI*2);ctx.stroke();}else if(this.type==="reed"){ctx.strokeStyle="#849474";ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(0,this.size);ctx.lineTo(0,-this.size);ctx.stroke();}else{ctx.fillStyle="#bbbbbb";ctx.beginPath();ctx.arc(0,0,this.size*0.5,0,Math.PI*2);ctx.fill();}ctx.restore();}}
+function resizeGlobalCanvas(){globalParticleCanvas.width=window.innerWidth;globalParticleCanvas.height=window.innerHeight;}
+function updateKeepParticle(particleType){globalKeepParticleType=particleType;setParticleByKeepType();}
+function setParticleByKeepType(){const type=globalKeepParticleType;if(particleRAF){cancelAnimationFrame(particleRAF);particleRAF=null;}globalParticles=[];if(type==="none"){gCtx.clearRect(0,0,globalParticleCanvas.width,globalParticleCanvas.height);globalParticleType=type;return;}globalParticleType=type;const w=globalParticleCanvas.width;const h=globalParticleCanvas.height;const count=type==="rain"?35:26;for(let i=0;i<count;i++){globalParticles.push(new GlobalParticle(type,w,h));}function loop(){const ww=globalParticleCanvas.width;const hh=globalParticleCanvas.height;gCtx.clearRect(0,0,ww,hh);globalParticles.forEach(p=>{p.update(ww,hh);p.draw(gCtx);});particleRAF=requestAnimationFrame(loop);}loop();}
+const ringCanvas=document.getElementById("ringCanvas");
+const rCtx=ringCanvas.getContext("2d");
+let ringHoverIdx=-1;
+function drawRing(){const w=ringCanvas.width=ringCanvas.clientWidth;const h=ringCanvas.height;const cx=w/2,cy=h/2;const R1=Math.min(w,h)/2-60;const R2=R1-72;rCtx.clearRect(0,0,w,h);const total=solarTerms.length;for(let i=0;i<total;i++){const angle=(i/total)*Math.PI*2-Math.PI/2;const nextAngle=((i+1)/total)*Math.PI*2-Math.PI/2;rCtx.beginPath();rCtx.arc(cx,cy,R1,angle,nextAngle);rCtx.arc(cx,cy,R2,nextAngle,angle,true);rCtx.closePath();rCtx.fillStyle=i===ringHoverIdx?"rgba(184,137,106,0.35)":"rgba(184,137,106,0.12)";rCtx.fill();rCtx.strokeStyle="rgba(184,137,106,0.25)";rCtx.lineWidth=1;rCtx.stroke();const midAngle=(angle+nextAngle)/2;const tx=cx+(R2+38)*Math.cos(midAngle);const ty=cy+(R2+38)*Math.sin(midAngle);rCtx.fillStyle="#4a453f";rCtx.font="14px Noto Serif SC";rCtx.textAlign="center";rCtx.fillText(solarTerms[i].name,tx,ty);}if(ringHoverIdx!==-1){const t=solarTerms[ringHoverIdx];rCtx.fillStyle="#8b5a3c";rCtx.font="17px Noto Serif SC";rCtx.textAlign="center";rCtx.fillText(`${t.name}｜${t.time}｜${t.wuhou.split("；")[0]}`,cx,cy);}}
+ringCanvas.onmousemove=function(e){const rect=ringCanvas.getBoundingClientRect();const x=e.clientX-rect.left;const y=e.clientY-rect.top;const cx=ringCanvas.width/2,cy=ringCanvas.height/2;let ang=Math.atan2(y-cy,x-cx)+Math.PI/2;if(ang<0)ang+=Math.PI*2;ringHoverIdx=Math.floor(ang/(Math.PI*2)*solarTerms.length);drawRing();};
+ringCanvas.onclick=function(){if(ringHoverIdx>=0){currentTermIndex=ringHoverIdx;updateKeepParticle(solarTerms[currentTermIndex].particle);showPage("detail");}};
+function renderDetail(){
+  const t=solarTerms[currentTermIndex];
+  const imgSrc = termImageList[t.pinyin];
+  document.getElementById("detailTitle").innerText=t.name;
+  document.getElementById("detailContent").innerHTML = `
+    <div style="display:flex; gap:2rem; flex-wrap:wrap; align-items:flex-start;">
+      <div style="flex:1; min-width:280px;">
+        <div class="info-group"><div class="info-label">公历时间</div><div>${t.time}</div></div>
+        <div class="info-group"><div class="info-label">三候</div><div>${t.wuhou}</div></div>
+        <div class="info-group"><div class="info-label">民俗</div><div>${t.folk}</div></div>
+        <div class="info-group"><div class="info-label">相关古诗</div><div>「${t.poem}」 —— ${t.poemAuthor}</div></div>
+        <div class="info-group"><div class="info-label">传统五色（青赤黄白黑）</div><div>${t.color.join(" / ")}</div></div>
+      </div>
+      <div style="width:420px; max-width:100%; min-width:220px; display:flex; justify-content:center;">
+        <img src="${imgSrc}" alt="${t.name}" style="max-width:98%; max-height:390px; height:auto; width:auto;margin-left:-15px; border-radius:10px; box-shadow:0 2px 12px rgba(80,40,20,0.12); border:1px solid rgba(184,137,106,0.2);">
+      </div>
+    </div>
+  `;
+  updateKeepParticle(t.particle);
+}function prevTerm(){currentTermIndex=(currentTermIndex-1+solarTerms.length)%solarTerms.length;renderDetail();}
+function nextTerm(){currentTermIndex=(currentTermIndex+1)%solarTerms.length;renderDetail();}
+const paintCanvas=document.getElementById("paintCanvas");
+const pntCtx=paintCanvas.getContext("2d");
+let paintFlag=false;
+let lastX=0;
+let lastY=0;
+let paintInitedOnce=false;
+let clearAnimTimer=null;
+document.getElementById("penBtn").onclick=function(){
+    isEraser=false;
+    pntCtx.globalCompositeOperation="source‑over";
+    showToast("已切换为画笔");
+};
+
+document.getElementById("eraserBtn").onclick=function(){
+    isEraser=true;
+    pntCtx.globalCompositeOperation="source‑over";
+    showToast("已切换为橡皮");
+};function initPaint(){paintCanvas.width=paintCanvas.clientWidth;if(!paintInitedOnce){paintCanvas.height=paintCanvas.clientHeight;pntCtx.fillStyle="#fffef8";pntCtx.fillRect(0,0,paintCanvas.width,paintCanvas.height);paintInitedOnce=true;}const t=solarTerms[currentTermIndex];const wrap=document.getElementById("colorWrap");wrap.innerHTML="";t.color.forEach(c=>{const d=document.createElement("div");d.className="color-dot";d.style.background=c;d.onclick=()=>{document.querySelectorAll(".color-dot").forEach(el=>el.classList.remove("active"));d.classList.add("active");selectedColor=c;};wrap.appendChild(d);});wrap.children[0].classList.add("active");selectedColor=t.color[0];isEraser=false;pntCtx.globalCompositeOperation="source-over";}
+paintCanvas.onmousedown = function(e) {
+    paintFlag = true;
+    const rect = paintCanvas.getBoundingClientRect();
+    lastX = e.clientX - rect.left;
+    lastY = e.clientY - rect.top;
+};
+paintCanvas.onmousemove=function(e){
+    if(!paintFlag)return;
+    const rect=paintCanvas.getBoundingClientRect();
+    const x=e.clientX-rect.left;
+    const y=e.clientY-rect.top;
+    const size=parseInt(document.getElementById("brushSize").value);
+    pntCtx.beginPath();
+    pntCtx.moveTo(lastX,lastY);
+    pntCtx.lineTo(x,y);
+    if(!isEraser){
+        pntCtx.strokeStyle=selectedColor;
+        pntCtx.globalAlpha=0.55;
+    }else{
+            pntCtx.strokeStyle="#fffef8";
+        pntCtx.globalAlpha=1;
+    }
+    pntCtx.lineWidth=size;
+    pntCtx.lineCap="round";
+    pntCtx.lineJoin="round";
+    pntCtx.stroke();
+    lastX=x;lastY=y;
+};paintCanvas.onmouseup=function(){paintFlag=false;};
+paintCanvas.onmouseleave=function(){paintFlag=false;};
+paintCanvas.ontouchstart=function(e){paintFlag=true;const rect=paintCanvas.getBoundingClientRect();const touch=e.touches[0];lastX=touch.clientX-rect.left;lastY=touch.clientY-rect.top;};
+paintCanvas.ontouchmove=function(e){if(!paintFlag)return;const rect=paintCanvas.getBoundingClientRect();const touch=e.touches[0];const x=touch.clientX-rect.left;const y=touch.clientY-rect.top;const size=parseInt(document.getElementById("brushSize").value);pntCtx.beginPath();pntCtx.moveTo(lastX,lastY);pntCtx.lineTo(x,y);if(!isEraser){pntCtx.strokeStyle=selectedColor;pntCtx.globalAlpha=0.55;}else{pntCtx.globalAlpha=1;}pntCtx.lineWidth=size;pntCtx.lineCap="round";pntCtx.lineJoin="round";pntCtx.stroke();lastX=x;lastY=y;};
+paintCanvas.ontouchend=function(){paintFlag=false;};
+function clearPaint(){
+    if(clearAnimTimer) return;
+    let alphaVal = 0;
+    const originalBg = "#fffef8";
+    clearAnimTimer = setInterval(()=>{
+        alphaVal += 0.04;
+        if(alphaVal >= 1){
+            clearInterval(clearAnimTimer);
+            clearAnimTimer = null;
+        }
+        pntCtx.fillStyle = originalBg;
+        pntCtx.fillRect(0,0,paintCanvas.width,paintCanvas.height);
+        pntCtx.fillStyle = `rgba(255,254,248,${alphaVal})`;
+        pntCtx.fillRect(0,0,paintCanvas.width,paintCanvas.height);
+    },30);
+    showToast("画布已清空");
+}function downloadPaint(){
+try{
+const link=document.createElement("a");
+link.download=`墨韵节序_${solarTerms[currentTermIndex].name}_壁纸.png`;
+const imgData = paintCanvas.toDataURL("image/png");
+link.href=imgData;
+link.click();
+let paintRecords = JSON.parse(localStorage.getItem("paintRecords")) || [];
+paintRecords.push({
+  time: new Date().toLocaleString()
+});
+if(paintRecords.length>8) paintRecords.shift();
+localStorage.setItem("paintRecords", JSON.stringify(paintRecords));
+showToast("✅作品已导出，创作记录已记入节记");
+
+}catch(e){showToast("导出失败");}
+}const guibiaoCanvas=document.getElementById("guibiaoCanvas");
+const gbGctx=guibiaoCanvas.getContext("2d");
+let guibiaoIndex=0;
+// 固定：冬至21号、夏至9号，只取【正午】影长作为参照基准
+const winterSolsticeShadow = calcShadowLength(21);
+const summerSolsticeShadow = calcShadowLength(9);
+function initGuibiao(){guibiaoCanvas.width=guibiaoCanvas.clientWidth;guibiaoIndex=currentTermIndex;drawGuibiao();}
+function drawGuibiao(){
+const w=guibiaoCanvas.width;
+const h=guibiaoCanvas.height;
+gbGctx.clearRect(0,0,w,h);
+const t=solarTerms[guibiaoIndex];
+// 得到【该节气正午】影长
+const shadowLen=calcShadowLength(guibiaoIndex);
+const scale=guiTotalWidth/260;
+const displayShadow=shadowLen*scale;
+
+// 1.圭尺底板
+gbGctx.fillStyle="#d9c7a8";
+gbGctx.fillRect(guiStartX,guiBaseY,guiTotalWidth,16);
+
+// 2.圭尺刻度+数字
+gbGctx.strokeStyle="#8b5a3c";
+gbGctx.lineWidth=1;
+for(let i=0;i<=12;i++){
+const x=guiStartX+(guiTotalWidth/12)*i;
+gbGctx.beginPath();
+gbGctx.moveTo(x,guiBaseY);
+gbGctx.lineTo(x,guiBaseY+(i%3===0?12:6));
+gbGctx.stroke();
+if(i%3===0){
+gbGctx.fillStyle="#5a4433";
+gbGctx.font="11px Noto Serif SC";
+gbGctx.textAlign="center";
+gbGctx.fillText(String(i*2), x, guiBaseY+26);
+}
+}
+
+// 3.冬至、夏至【正午】参考虚线，永久显示
+const dispWinter = winterSolsticeShadow * scale;
+const dispSummer = summerSolsticeShadow * scale;
+
+gbGctx.setLineDash([6,4]);
+// 冬至红线
+gbGctx.strokeStyle="#c23030";
+gbGctx.lineWidth=2;
+gbGctx.beginPath();
+gbGctx.moveTo(guiStartX + dispWinter, guiBaseY-10);
+gbGctx.lineTo(guiStartX + dispWinter, guiBaseY+30);
+gbGctx.stroke();
+gbGctx.fillStyle="#c23030";
+gbGctx.font="11px Noto Serif SC";
+gbGctx.textAlign="left";
+gbGctx.fillText("冬至·正午影最长", guiStartX + dispWinter+4, guiBaseY-2);
+
+// 夏至绿线
+gbGctx.strokeStyle="#288b37";
+gbGctx.beginPath();
+gbGctx.moveTo(guiStartX + dispSummer, guiBaseY-10);
+gbGctx.lineTo(guiStartX + dispSummer, guiBaseY+30);
+gbGctx.stroke();
+gbGctx.fillStyle="#288b37";
+gbGctx.fillText("夏至·正午影最短", guiStartX + dispSummer+4, guiBaseY-2);
+gbGctx.setLineDash([]);
+
+// 4.绘制表杆
+gbGctx.fillStyle="#8b5a3c";
+gbGctx.fillRect(guiStartX-8,guiBaseY-gnomonHeight,16,gnomonHeight);
+gbGctx.fillStyle="#b3423d";
+gbGctx.fillRect(guiStartX-12,guiBaseY-gnomonHeight-6,24,8);
+
+// 5.当前节气【正午】的影子
+gbGctx.fillStyle="rgba(60,50,40,0.65)";
+gbGctx.fillRect(guiStartX,guiBaseY+2,displayShadow,12);
+
+// 更新面板文字
+document.getElementById("guibiaoTermName").innerText=t.name;
+document.getElementById("guibiaoShadowLen").innerText=shadowLen.toFixed(2)+" 寸（正午相对）";
+
+// 正午观测解读
+let tipText="";
+if(guibiaoIndex === 9){
+tipText = "夏至正午：太阳位置一年最高，正午日影达到全年最短。";
+}else if(guibiaoIndex === 21){
+tipText = "冬至正午：太阳位置一年最低，正午日影达到全年最长。";
+}else if(guibiaoIndex ===3 || guibiaoIndex ===15){
+tipText = "春分/秋分正午：昼夜近乎等长，正午影长处于年中区间。";
+}else if(guibiaoIndex>9 && guibiaoIndex<21){
+tipText = "夏至向冬至过渡：每一个节气的正午，影子持续变长。";
+}else{
+tipText = "冬至向夏至过渡：每一个节气的正午，影子持续变短。";
+}
+document.getElementById("guiTip").innerText = tipText;
+}function prevGuibiaoTerm(){
+stopAutoGuibiao();   
+guibiaoIndex=(guibiaoIndex-1+24)%24;
+drawGuibiao();
+}
+function nextGuibiaoTerm(){
+stopAutoGuibiao();   
+guibiaoIndex=(guibiaoIndex+1)%24;
+drawGuibiao();
+}
+function autoPlayGuibiao(){
+if(guibiaoAutoTimer)return;
+guibiaoAutoTimer=setInterval(()=>{
+guibiaoIndex=(guibiaoIndex+1)%24;
+drawGuibiao();
+},800);
+showToast("✅已开启自动播放"); ; 
+}
+function stopAutoGuibiao(){
+  if(guibiaoAutoTimer){
+    clearInterval(guibiaoAutoTimer);
+    guibiaoAutoTimer = null;
+    showToast("⏹已停止自动播放");
+  }
+}
+function initQuiz(){
+quizData=[
+{q:"“好雨知时节，当春乃发生”对应的节气是？",opts:["立春","雨水","惊蛰","春分"],ans:1,explain:"出自杜甫《春夜喜雨》，雨水节气降雨增多。",cat:"poem"},
+{q:"“微雨众卉新，一雷惊蛰始”对应的节气是？",opts:["雨水","惊蛰","清明","谷雨"],ans:1,explain:"出自韦应物《观田家》，惊蛰春雷始发，惊醒蛰伏虫类。",cat:"poem"},
+{q:"“云天收夏色，木叶动秋声”对应的节气是？",opts:["立秋","处暑","白露","秋分"],ans:0,explain:"出自刘翰《立秋》，立秋到来，暑气消退，秋叶开始摇曳。",cat:"poem"},
+{q:"二十四节气中，日影最短的节气是？",opts:["春分","夏至","秋分","冬至"],ans:1,explain:"夏至太阳直射北回归线，北半球正午日影最短。",cat:"knowledge"},
+{q:"二十四节气中，日影最长的节气是？",opts:["春分","夏至","秋分","冬至"],ans:3,explain:"冬至太阳直射南回归线，北半球正午日影最长。",cat:"knowledge"},
+{q:"“清明时节雨纷纷，路上行人欲断魂”作者是？",opts:["李白","杜甫","杜牧","王维"],ans:2,explain:"杜牧《清明》，清明节气踏青扫墓，多阴雨天气。",cat:"poem"},
+{q:"哪个节气有竖蛋的传统习俗？",opts:["立春","春分","立夏","秋分"],ans:1,explain:"春分昼夜平分，民间流行竖蛋游戏。",cat:"folk"},
+{q:"“处暑无三日，新凉直万金”描写的节气是？",opts:["立秋","处暑","白露","秋分"],ans:1,explain:"出自苏泂，处暑之后暑气结束，天气转凉。",cat:"poem"},
+{q:"白露节气三候第一候是？",opts:["鸿雁来","玄鸟归","群鸟养羞","雷始收声"],ans:0,explain:"白露三候：鸿雁来；玄鸟归；群鸟养羞。",cat:"wuhou"},
+{q:"霜降节气，民间有吃哪种食物的习俗？",opts:["饺子","柿子","春卷","粽子"],ans:1,explain:"霜降吃柿子，民间认为可御寒、补筋骨。",cat:"folk"},
+{q:"立冬的物候“雉入大水为蜃”，蜃指？",opts:["大雁","野鸡","蛤蜊","蛇"],ans:2,explain:"古人认为雉鸟入冬潜入海中化为蛤蜊。",cat:"wuhou"},
+{q:"冬至民间北方主要习俗是？",opts:["吃汤圆","吃饺子","吃月饼","吃春饼"],ans:1,explain:"北方冬至吃饺子，相传纪念医圣张仲景。",cat:"folk"},
+{q:"小寒、大寒是一年中？",opts:["最热时段","最冷时段","昼夜均分","草木萌发期"],ans:1,explain:"小寒大寒，冻成一团，是全年最冷时节。",cat:"knowledge"},
+{q:"“律回岁晚冰霜少，春到人间草木知”写的是？",opts:["立春","雨水","惊蛰","春分"],ans:0,explain:"张栻《立春偶成》，立春阳气回升，草木感知春意。",cat:"poem"},
+{q:"惊蛰节气的标志性物候现象是？",opts:["打雷","下霜","结冰","红叶"],ans:0,explain:"惊蛰春雷始鸣，惊醒地下蛰伏昆虫。",cat:"wuhou"},
+{q:"谷雨节气，民间祭祀哪位文字始祖？",opts:["孔子","仓颉","炎帝","黄帝"],ans:1,explain:"谷雨祭仓颉，传说仓颉造字，天降谷雨。",cat:"folk"},
+{q:"立夏的传统游戏是？",opts:["斗草","斗蛋","放风筝","登高"],ans:1,explain:"立夏斗蛋，祈求夏日平安，不疰夏。",cat:"folk"},
+{q:"小满节气，“小满”含义是？",opts:["雨水满盈","麦子灌浆未满","河水满溢","果实成熟"],ans:1,explain:"夏熟作物籽粒开始饱满，但尚未完全成熟。",cat:"knowledge"},
+{q:"芒种的“芒”指？",opts:["草芒","麦芒","花蕊","树叶尖"],ans:1,explain:"麦类等有芒作物成熟，需要抢收。",cat:"knowledge"},
+{q:"夏至有什么民俗？",opts:["消夏避伏","赏菊","贴秋膘","腌腊肉"],ans:0,explain:"夏至古代女子互赠脂粉，避暑消夏。",cat:"folk"},
+{q:"小暑节气，“蟋蟀居宇”意思是？",opts:["蟋蟀冻死","蟋蟀到屋檐下避暑","蟋蟀产卵","蟋蟀冬眠"],ans:1,explain:"小暑天气炎热，蟋蟀离开田野到庭院墙角。",cat:"wuhou"},
+{q:"大暑节气，民间会喝？",opts:["腊八粥","伏茶","菊花酒","雄黄酒"],ans:1,explain:"伏茶是大暑解暑草药茶。",cat:"folk"},
+{q:"立秋民间习俗“贴秋膘”目的是？",opts:["减肥","补身体","祈福","驱虫"],ans:1,explain:"夏天食欲差，立秋吃肉进补，叫贴秋膘。",cat:"folk"},
+{q:"“白露团甘子，清晨散马蹄”出自哪位诗人？",opts:["李白","杜甫","白居易","元稹"],ans:1,explain:"杜甫《白露》，描写白露清晨景象。",cat:"poem"},
+{q:"秋分有什么习俗？",opts:["祭月","祭日","迎春","送花神"],ans:0,explain:"古秋分祭月，后来中秋节才固定八月十五。",cat:"folk"},
+{q:"寒露节气，盛开的代表性花卉是？",opts:["桃花","荷花","菊花","梅花"],ans:2,explain:"寒露菊有黄华，菊花盛开。",cat:"knowledge"},
+{q:"小雪节气民间常做？",opts:["腌菜晒腊货","放风筝","赛龙舟","赏荷"],ans:0,explain:"小雪气温下降，适合腌制蔬菜腊肉。",cat:"folk"},
+{q:"大雪节气的物候“鹖鴠不鸣”鹖鴠是？",opts:["寒号鸟","大雁","喜鹊","老虎"],ans:0,explain:"寒号鸟天冷不再鸣叫。",cat:"wuhou"},
+{q:"“花雪随风不厌看，更多还肯失林峦”写的是？",opts:["立春","小雪","大雪","冬至"],ans:1,explain:"戴叔伦描写小雪飘飞。",cat:"poem"},
+{q:"“大寒雪未消，闭户不能出”作者？",opts:["陆游","杜甫","白居易","杜牧"],ans:0,explain:"陆游《大寒》，大寒严寒大雪。",cat:"poem"},
+{q:"二十四节气起源于哪个流域？",opts:["长江流域","黄河流域","珠江流域","黑龙江流域"],ans:1,explain:"二十四节气诞生于黄河中下游农耕文明。",cat:"knowledge"},
+{q:"二十四节气被列入非遗年份？",opts:["2014","2016","2018","2020"],ans:1,explain:"2016年11月30日列入联合国人类非物质文化遗产。",cat:"knowledge"},
+{q:"“春雨惊春清谷天”第一个春是？",opts:["春分","立春","清明","惊蛰"],ans:1,explain:"春（立春）雨（雨水）惊（惊蛰）春（春分）清（清明）谷（谷雨）。",cat:"knowledge"},
+{q:"夏满芒夏暑相连，第一个夏是？",opts:["夏至","立夏","小暑","大暑"],ans:1,explain:"夏（立夏）满（小满）芒（芒种）夏（夏至）暑相连。",cat:"knowledge"},
+{q:"秋处露秋寒霜降，第一个秋？",opts:["秋分","立秋","处暑","白露"],ans:1,explain:"秋（立秋）处（处暑）露（白露）秋（秋分）寒霜降。",cat:"knowledge"},
+{q:"冬雪雪冬小大寒，第一个冬？",opts:["冬至","立冬","小雪","大雪"],ans:1,explain:"冬（立冬）雪（小雪）雪（大雪）冬（冬至）小大寒。",cat:"knowledge"},
+{q:"雨水节气，民间习俗“回娘屋”指？",opts:["女子回娘家","祭祀龙王","播种","养蚕"],ans:0,explain:"雨水出嫁女儿回娘家探望父母。",cat:"folk"},
+{q:"惊蛰习俗祭白虎，白虎象征？",opts:["丰收","口舌是非","雨水","虫害"],ans:1,explain:"祭白虎化解是非，打小人驱晦气。",cat:"folk"},
+{q:"清明放风筝寓意？",opts:["迎亲","放走晦气","求雨","庆丰收"],ans:1,explain:"放风筝剪断风筝线，寓意带走病痛灾祸。",cat:"folk"},
+{q:"小满“祭车神”祭祀的是？",opts:["水车神","土地神","谷神","太阳神"],ans:0,explain:"小满祭水车，祈求水源充足。",cat:"folk"},
+{q:"芒种民俗送花神，是因为？",opts:["百花凋零","百花盛开","梅花开放","荷花初绽"],ans:0,explain:"芒种春花凋零，送别花神，期待来年再会。",cat:"folk"},
+{q:"夏至面，民间说法：吃过夏至面？",opts:["一年无病","一天短一线","五谷丰登","雨水充足"],ans:1,explain:"夏至白昼最长，过了夏至白昼一天天变短。",cat:"folk"},
+{q:"小暑“晒伏”是晒什么？",opts:["粮食衣物","渔网","种子","药材"],ans:0,explain:"伏天暴晒书画衣物，防潮防虫。",cat:"folk"},
+{q:"大暑晒姜，叫？",opts:["伏姜","干姜","生姜","老姜"],ans:0,explain:"大暑晒伏姜，驱寒暖胃。",cat:"folk"},
+{q:"处暑开渔节，是哪个地区特色？",opts:["内蒙古","浙江沿海","四川","陕西"],ans:1,explain:"处暑之后海水温度适宜，沿海举办开渔节。",cat:"folk"},
+{q:"白露“收清露”古人认为露水可以？",opts:["养颜治病","酿酒","灌溉","淬火"],ans:0,explain:"古人收集白露露水，认为有养生功效。",cat:"folk"},
+{q:"秋分祭月，后来演变为哪个节日？",opts:["春节","中秋","端午","重阳"],ans:1,explain:"古代秋分祭月，因秋分不一定有满月，移至八月十五中秋节。",cat:"folk"},
+{q:"寒露饮菊花酒，目的？",opts:["驱寒养生","庆祝丰收","祭祀祖先","求姻缘"],ans:0,explain:"寒露菊花盛开，饮菊花酒润燥。",cat:"folk"},
+{q:"立冬“补冬”人们多吃？",opts:["羊肉等肉食","西瓜","凉菜","粽子"],ans:0,explain:"立冬进补，抵御寒冬。",cat:"folk"},
+{q:"冬至“冬至大如年”意思是？",opts:["冬至地位堪比过年","冬至在年末","冬至最冷","冬至播种"],ans:0,explain:"古代冬至重要程度接近新年。",cat:"folk"},
+{q:"小寒喝腊八粥，主要原料不含？",opts:["米豆","坚果","肉类","干果"],ans:2,explain:"腊八粥谷物干果熬制，无肉类。",cat:"folk"},
+{q:"大寒“扫尘”是为了？",opts:["除旧迎新","驱虫","晒粮食","修房屋"],ans:0,explain:"大寒临近春节，扫尘大扫除迎新年。",cat:"folk"},
+{q:"哪个节气代表春天正式开始？",opts:["雨水","立春","惊蛰","春分"],ans:1,explain:"立春为四时之首，春季开端。",cat:"knowledge"},
+{q:"哪个节气昼夜长短完全相等？",opts:["立春、立秋","春分、秋分","夏至、冬至","小满、小雪"],ans:1,explain:"春分秋分昼夜平分。",cat:"knowledge"},
+{q:"谷雨的物候“戴胜降于桑”戴胜是？",opts:["一种鸟","虫子","花卉","野兽"],ans:0,explain:"戴胜鸟落在桑树之上。",cat:"wuhou"},
+{q:"立夏三候“王瓜生”王瓜是？",opts:["瓜果植物","青蛙","虫子","鸟类"],ans:0,explain:"王瓜藤蔓在立夏时节快速生长。",cat:"wuhou"},
+{q:"芒种适合的农事活动是？",opts:["麦收插秧","播种小麦","收获苹果","采摘茶叶"],ans:0,explain:"芒种抢收麦子，抢种水稻。",cat:"knowledge"},
+{q:"大暑三候“腐草为萤”古人认为萤火虫来自？",opts:["腐烂草木","雨水","泥土","星辰"],ans:0,explain:"古人误以为腐草化为萤火虫。",cat:"wuhou"},
+{q:"立秋三候“寒蝉鸣”寒蝉指？",opts:["天凉后鸣叫的蝉","冬天蝉","幼虫","死去蝉"],ans:0,explain:"立秋气温下降，寒蝉持续鸣叫。",cat:"wuhou"},
+{q:"霜降三候“豺乃祭兽”意思？",opts:["豺捕猎陈列猎物，如同祭祀","豺冬眠","豺迁徙","豺繁殖"],ans:0,explain:"霜降豺捕获野兽，摆放起来像祭祀。",cat:"wuhou"},
+{q:"大雪荔挺出，荔挺是？",opts:["兰草类植物","荔枝","果树","苔藓"],ans:0,explain:"荔挺是一种草本，大雪时节破土而出。",cat:"wuhou"},
+{q:"冬至三候“麋角解”麋是？",opts:["麋鹿","梅花鹿","羚羊","野猪"],ans:0,explain:"麋鹿冬至脱落鹿角。",cat:"wuhou"},
+{q:"小寒三候“雁北乡”大雁？",opts:["准备向北回迁","向南迁徙","孵化","觅食"],ans:0,explain:"小寒阳气初生，大雁感知阳气准备北归。",cat:"wuhou"},
+{q:"大寒三候“水泽腹坚”意思？",opts:["湖水冻透结冰","河水上涨","湖水解冻","泉水涌出"],ans:0,explain:"大寒水域冰层冻到深处，十分坚硬。",cat:"wuhou"},
+{q:"“昼晷已云极，宵漏自此长”写的是？",opts:["春分","夏至","秋分","冬至"],ans:1,explain:"韦应物夏至诗句，白昼达到最长，此后夜晚渐长。",cat:"poem"},
+{q:"“谷雨春光晓，山川黛色青”作者？",opts:["元稹","李白","王维","孟浩然"],ans:0,explain:"元稹《谷雨》，描写谷雨山川青翠。",cat:"poem"},
+{q:"“夜莺啼绿柳，皓月醒长空”描写？",opts:["立夏","小满","芒种","夏至"],ans:1,explain:"欧阳修小满，夜莺啼鸣，月色明亮。",cat:"poem"},
+{q:"“时雨及芒种，四野皆插秧”作者？",opts:["陆游","杜甫","白居易","杨万里"],ans:0,explain:"陆游《时雨》，芒种插秧农忙景象。",cat:"poem"},
+{q:"“小暑夏弦应，徽音商管初”出自？",opts:["元稹","李白","杜甫","王维"],ans:0,explain:"元稹小暑节气诗。",cat:"poem"},
+{q:"“大暑三秋近，林钟九夏移”出自？",opts:["元稹","陆游","杜牧","岑参"],ans:0,explain:"元稹大暑，大暑过后秋天将近。",cat:"poem"},
+{q:"“寒露惊秋晚，朝看菊渐黄”作者？",opts:["元稹","杜甫","李白","刘禹锡"],ans:0,explain:"元稹寒露，菊花逐渐变黄。",cat:"poem"},
+{q:"“霜降三旬后，蓂馀一叶秋”出自？",opts:["元稹","杜牧","白居易","李商隐"],ans:0,explain:"元稹霜降，秋意浓郁。",cat:"poem"},
+{q:"“细雨生寒未有霜，庭前木叶半青黄”写的是？",opts:["立冬","小雪","大雪","冬至"],ans:0,explain:"仇远立冬，气温初降，树叶半青半黄。",cat:"poem"},
+{q:"“天时人事日相催，冬至阳生春又来”作者？",opts:["杜甫","陆游","元稹","白居易"],ans:0,explain:"杜甫《小至》，冬至阳气回升，春天将至。",cat:"poem"},
+{q:"“小寒连大吕，欢鹊垒新巢”出自？",opts:["元稹","杜甫","李白","王维"],ans:0,explain:"元稹小寒，喜鹊筑巢等待春天。",cat:"poem"},
+{q:"二十四节气的圭表用来测量？",opts:["日影长度","风力大小","降雨量","温度"],ans:0,explain:"圭表通过正午影子长短判断节气。",cat:"knowledge"},
+{q:"下列哪一项不属于春季节气？",opts:["立春","惊蛰","清明","立夏"],ans:3,explain:"立夏属于夏季第一个节气。",cat:"knowledge"},
+{q:"不属于夏季节气的是？",opts:["小满","芒种","立秋","夏至"],ans:2,explain:"立秋属于秋季。",cat:"knowledge"},
+{q:"不属于秋季节气的是？",opts:["处暑","白露","寒露","立冬"],ans:3,explain:"立冬属于冬季。",cat:"knowledge"},
+{q:"不属于冬季节气的是？",opts:["大雪","冬至","小寒","霜降"],ans:3,explain:"霜降属于秋季末尾节气。",cat:"knowledge"},
+{q:"哪个节气是春季最后一个节气？",opts:["清明","谷雨","春分","惊蛰"],ans:1,explain:"谷雨，春雨滋养谷物，春末节气。",cat:"knowledge"},
+{q:"夏季最后一个节气？",opts:["小暑","大暑","夏至","芒种"],ans:1,explain:"大暑是夏季终点，一年最热。",cat:"knowledge"},
+{q:"秋季最后一个节气？",opts:["寒露","霜降","秋分","白露"],ans:1,explain:"霜降秋末，霜落草木凋零。",cat:"knowledge"},
+{q:"冬季最后一个节气？",opts:["冬至","小寒","大寒","大雪"],ans:2,explain:"大寒是二十四节气收尾。",cat:"knowledge"},
+{q:"打春是哪个节气俗称？",opts:["立春","雨水","惊蛰","春分"],ans:0,explain:"立春又称打春，鞭打春牛迎春。",cat:"folk"},
+{q:"咬春，吃春卷春饼，属于哪个节气习俗？",opts:["立春","雨水","春分","清明"],ans:0,explain:"立春咬春，品尝春天新鲜蔬菜。",cat:"folk"},
+{q:"拉保保是雨水节气习俗，目的？",opts:["认干亲保佑孩子健康","求雨","播种","迎春"],ans:0,explain:"雨水拉保保，认干爹干妈护佑孩童。",cat:"folk"},
+{q:"“雷乃发声”是哪个节气物候？",opts:["惊蛰","春分","清明","谷雨"],ans:1,explain:"春分第二候雷乃发声。",cat:"wuhou"},
+{q:"“虹始见”是哪个节气物候？",opts:["清明","谷雨","雨水","惊蛰"],ans:0,explain:"清明第三候，雨后开始出现彩虹。",cat:"wuhou"},
+{q:"“萍始生”是哪个节气物候？",opts:["谷雨","清明","雨水","立夏"],ans:0,explain:"谷雨水面浮萍开始生长。",cat:"wuhou"},
+{q:"“蝼蝈鸣”是立夏第几候？",opts:["第一候","第二候","第三候","无"],ans:0,explain:"立夏一候蝼蝈鸣，蝼蛄开始鸣叫。",cat:"wuhou"},
+{q:"“苦菜秀”是小满第一候，苦菜指？",opts:["野菜","瓜果","花卉","菌类"],ans:0,explain:"小满苦菜繁茂，古人采食苦菜。",cat:"wuhou"},
+{q:"“螳螂生”是芒种第几候？",opts:["一候","二候","三候","无"],ans:0,explain:"芒种一候螳螂破卵而出。",cat:"wuhou"},
+{q:"“鹿角解”是夏至一候，鹿角脱落代表？",opts:["阴气始生","阳气鼎盛","雨水增多","草木枯萎"],ans:0,explain:"夏至阳极阴生，鹿角脱落。",cat:"wuhou"},
+{q:"“温风至”是小暑第一候，意思？",opts:["热风到来","寒风到来","大风","无风"],ans:0,explain:"小暑不再有凉风，到处都是温热之风。",cat:"wuhou"},
+{q:"“腐草为萤”是大暑第几候？",opts:["一候","二候","三候","无"],ans:0,explain:"大暑一候腐草为萤。",cat:"wuhou"},
+{q:"“凉风至”立秋第一候，意思？",opts:["秋风到来","热风","寒风","暖风"],ans:0,explain:"立秋之后，刮风不再闷热，凉风出现。",cat:"wuhou"},
+{q:"“鹰乃祭鸟”是处暑一候，说明？",opts:["鹰开始捕猎飞鸟","鸟类迁徙","鸟类孵化","鸟死亡"],ans:0,explain:"处暑鹰大量捕鸟，陈列猎物如同祭祀。",cat:"wuhou"},
+{q:"“玄鸟归”白露二候，玄鸟是？",opts:["燕子","大雁","喜鹊","麻雀"],ans:0,explain:"燕子秋天向南飞回南方。",cat:"wuhou"},
+{q:"“蛰虫坯户”秋分二候，意思？",opts:["小虫封洞口准备过冬","虫子产卵","虫子出来活动","虫子死亡"],ans:0,explain:"小虫用细土封堵洞穴，准备越冬。",cat:"wuhou"},
+{q:"“雀入大水为蛤”寒露二候，古人认为雀鸟化为？",opts:["蛤蜊","鱼","虾","蟹"],ans:0,explain:"古人想象雀鸟入海变成蛤蜊。",cat:"wuhou"},
+{q:"“水始冰”立冬一候，意思？",opts:["水开始结冰","河水解冻","下雨","起雾"],ans:0,explain:"立冬气温下降，水面开始凝结薄冰。",cat:"wuhou"},
+{q:"“闭塞而成冬”小雪三候，意思？",opts:["天地阳气收敛，寒冬形成","大雪纷飞","河水结冰","万物复苏"],ans:0,explain:"阴阳不交，万物闭塞，寒冬成型。",cat:"wuhou"},
+{q:"“虎始交”大雪二候，老虎开始？",opts:["交配繁殖","冬眠","捕猎","迁徙"],ans:0,explain:"大雪阴气极盛，老虎感知阳气开始交配。",cat:"wuhou"},
+{q:"“水泉动”冬至三候，泉水？",opts:["暗中流动","结冰","断流","涌出"],ans:0,explain:"冬至阳气初生，地下泉水开始涌动。",cat:"wuhou"},
+{q:"“鸡始乳”大寒一候，鸡开始？",opts:["孵蛋","觅食","迁徙","冬眠"],ans:0,explain:"大寒阳气回升，母鸡开始孵育小鸡。",cat:"wuhou"},
+{q:"“征鸟厉疾”大寒二候，征鸟是？",opts:["猛禽","家禽","小鸟","水鸟"],ans:0,explain:"鹰隼类猛禽，搏击长空捕猎。",cat:"wuhou"}
+];
+quizRawData=[...quizData];
+quizIndex=0;
+userSelectIdx=null;
+quizAnswered=false;
+renderQuiz();
+updateScoreUI();
+}
+function switchQuizCat(catKey){
+currentQuizCat=catKey;
+document.querySelectorAll("#game .btn-group button").forEach(btn=>btn.classList.remove("active"));
+event.target.classList.add("active");
+if(catKey==="all"){
+quizData=[...quizRawData];
+}else{
+quizData=quizRawData.filter(item=>item.cat===catKey);
+}
+quizIndex=0;
+if(quizData.length===0){
+showToast("该分类暂无题目！");
+return;
+}
+renderQuiz();
+}
+function renderQuiz(){
+const box=document.getElementById("quizBox");
+const q=quizData[quizIndex];
+userSelectIdx=null;
+quizAnswered=false;
+document.getElementById("submitBtn").style.display="inline-block";
+document.getElementById("explainBtn").style.display="none";
+document.getElementById("nextQuizBtn").style.display="none";
+document.getElementById("explainText").style.display="none";
+let html=`<p style="font-size:17px;margin-bottom:12px;">${q.q}</p>`;
+q.opts.forEach((opt,i)=>{
+html+=`<div class="quiz-option" onclick="selectOption(${i})">${opt}</div>`;
+});
+box.innerHTML=html;
+}
+function selectOption(i){
+if(quizAnswered) return;
+userSelectIdx=i;
+const opts=document.querySelectorAll(".quiz-option");
+opts.forEach((el,idx)=>{
+el.classList.remove("selected");
+if(idx===i) el.classList.add("selected");
+});
+}
+document.getElementById("submitBtn").onclick=function(){
+if(quizAnswered) return;
+if(userSelectIdx===null){showToast("请先选择选项！");return;}
+quizAnswered=true;
+totalAnswer++;
+const q=quizData[quizIndex];
+const opts=document.querySelectorAll(".quiz-option");
+opts.forEach((el,idx)=>{
+if(idx===q.ans) el.classList.add("right");
+if(idx===userSelectIdx && userSelectIdx!==q.ans) el.classList.add("wrong");
+});
+if(userSelectIdx===q.ans){
+score+=10;
+rightNum++;
+showToast("回答正确！+10分");
+}else{
+showToast("回答错误");
+}
+addNote(`答题：${q.q} 选择：${q.opts[userSelectIdx]}，${userSelectIdx===q.ans?"答对":"答错"}`);
+document.getElementById("submitBtn").style.display="none";
+document.getElementById("explainBtn").style.display="inline-block";
+document.getElementById("nextQuizBtn").style.display="inline-block";
+updateScoreUI();
+};
+document.getElementById("explainBtn").onclick=function(){
+const q=quizData[quizIndex];
+document.getElementById("explainText").innerText="解析："+q.explain;
+document.getElementById("explainText").style.display="block";
+};
+document.getElementById("nextQuizBtn").onclick=function(){
+quizIndex++;
+if(quizIndex>=quizData.length){
+showToast("当前分类题目全部完成！");
+quizIndex=0;
+}
+renderQuiz();
+};
+function updateScoreUI(){
+document.getElementById("totalCount").innerText=totalAnswer;
+document.getElementById("rightCount").innerText=rightNum;
+document.getElementById("scoreNum").innerText=score;
+const rate=totalAnswer===0 ? 0 : Math.round((rightNum/totalAnswer)*100);
+document.getElementById("rateText").innerText=rate+"%";
+}
+window.addEventListener("resize",()=>{resizeGlobalCanvas();drawRing();drawGuibiao();});
+resizeGlobalCanvas();
+</script>
+</body>
+</html>
